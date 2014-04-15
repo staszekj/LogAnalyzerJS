@@ -35,7 +35,7 @@ var logAnalyzer = {
             }
 
         });
-s
+
     }
 }
 
