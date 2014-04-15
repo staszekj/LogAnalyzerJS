@@ -37,6 +37,7 @@ var logAnalyzer = {
         });
 
     }
+//7
 }
 
 module.exports = logAnalyzer;
