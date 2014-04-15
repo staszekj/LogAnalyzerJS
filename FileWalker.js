@@ -41,9 +41,5 @@ var logAnalyzer = {
 
 module.exports = logAnalyzer;
 
-<<<<<<< HEAD
-//b
-
-=======
 //c
->>>>>>> master
+
