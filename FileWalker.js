@@ -33,7 +33,6 @@ var logAnalyzer = {
             if(last){
                 onEnd();
             }
-
         });
     }
 }
