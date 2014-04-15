@@ -23,10 +23,7 @@ var logAnalyzer = {
         )
 
     },
-//SJA
-    readFile: function (file, onLine, onEnd) {
-    
-//zmiana    
+    readFile: function (file, onLine, onEnd) {   
 
         lineReader.eachLine(file, function(line, last) {
 
