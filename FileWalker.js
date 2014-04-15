@@ -25,6 +25,8 @@ var logAnalyzer = {
     },
 //SJA
     readFile: function (file, onLine, onEnd) {
+    
+//zmiana    
 
         lineReader.eachLine(file, function(line, last) {
 
