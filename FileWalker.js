@@ -23,7 +23,7 @@ var logAnalyzer = {
         )
 
     },
-
+//SJA
     readFile: function (file, onLine, onEnd) {
 
         lineReader.eachLine(file, function(line, last) {
