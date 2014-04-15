@@ -33,17 +33,12 @@ var logAnalyzer = {
             if(last){
                 onEnd();
             }
-//gh           
 
         });
 
     }
-// e    
 }
-
-//d
 
 module.exports = logAnalyzer;
 
-//c
 
