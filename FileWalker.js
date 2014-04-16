@@ -36,6 +36,7 @@ var logAnalyzer = {
     }
     /aa
 }
+//bb
 
 module.exports = logAnalyzer;
 
