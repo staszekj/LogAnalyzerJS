@@ -9,6 +9,8 @@ var walker = require('walker'),
 
 var logAnalyzer = {
 
+    that: this,
+
     walk: function (dirs, onFile, onEnd) {
 
         dirs.forEach(function (dir) {
@@ -23,6 +25,7 @@ var logAnalyzer = {
         )
 
     },
+
     readFile: function (file, onLine, onEnd) {   
 
         lineReader.eachLine(file, function(line, last) {
@@ -34,7 +37,7 @@ var logAnalyzer = {
             }
         });
     }
-    /aa
+
 }
 //bb
 
