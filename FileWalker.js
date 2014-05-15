@@ -38,6 +38,8 @@ var logAnalyzer = {
         });
     }
 
+    makeStatisticForFile: function(file, )
+
 }
 //bb
 
