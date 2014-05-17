@@ -1,20 +1,25 @@
-var logAnalyzer = require ('../FileWalker');
-var _ = require('underscore');
-var fs = require('fs');
+var logAnalyzer = require ('../bin/FileWalker'),
+_ = require('../node_modules/underscore'),
+fs = require('fs');
 
 
 exports.testFileWalker = function(test){
     var files = [];
-    logAnalyzer.walk(['/Users/Staszek/dev/projects/LogAnalyzerJS/test/resources'],
-        function(basedir, entry){files.push(entry)},
-        function(){test.equal(_.intersection(files, [ '/b/bb2.txt', '/cc.txt', '/a/aa.txt', '/b/bb1.txt']).length, 4); test.done()}
+    logAnalyzer.walk(['test/resources'],
+        function(basedir, entry){
+            files.push(entry)
+        },
+        function(){
+            test.equal(_.intersection(files, [ '/b/bb2.txt', '/cc.txt', '/a/aa.txt', '/b/bb1.txt']).length, 4);
+            test.done()
+        }
     );
 };
 
 
 exports.testReadFile = function(test){
     var lines = [];
-    logAnalyzer.readFile('/Users/Staszek/dev/projects/LogAnalyzerJS/test/resources/cc.txt',
+    logAnalyzer.readFile('test/resources/cc.txt',
         function(line){
             lines.push(line);
         },
@@ -32,7 +37,7 @@ exports.testReadFile = function(test){
 
 
 exports.writeToFile = function(test){
-   var fileToAppend = 'test/resources/output/aaa.txt';
+   var fileToAppend = 'test/resources/output/test1.txt';
     fs.writeFile(fileToAppend,'');
     for (i=1; i<=10; i++){
         var now = new Date();
@@ -53,9 +58,28 @@ exports.writeToFile = function(test){
 
 
 exports.testReadParsedFile = function(test){
+
     var pattern = /([\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2}\.[\d]{3}) .*\*+ (.*)/
+    var stat = logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/test1.txt',
+        function parseF(line){
+            var result = line.match(pattern);
+            return {
+                date: result[1],
+                objective: result[2],
+                responseTime: 0,
+                parseFunction: parseF
+            }
+        },
+        function (stat){
+            _.forEach(stat, function(elem){console.log(elem)});
+        }
+    )
+
+    test.done();
+
+    /*
     var struct = {};
-    logAnalyzer.readFile('/Users/Staszek/dev/projects/LogAnalyzerJS/test/resources/output/aaa.txt',
+    logAnalyzer.readFile('/Users/Staszek/dev/projects/LogAnalyzerJS/test/resources/output/test1.txt',
         function(line){
             var result = line.match(pattern);
             if (result){
@@ -79,11 +103,12 @@ exports.testReadParsedFile = function(test){
             test.done();
         }
     );
+    */
 };
 
 
 exports.quebeck = function(test){
 
-
+    test.done();
 
 };

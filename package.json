@@ -1,0 +1,35 @@
+{
+  "name": "LogAnalyzerJS",
+  "version": "0.1.0",
+  "description": "LogAnalyzer",
+  "maintainers": [
+    {
+      "name": "Stanislaw Jagiella",
+      "web": "https://github.com/staszekj"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/staszekj/LogAnalyzerJS.git"
+  },
+  "devDependencies": {
+    "uglify-js": ">=1.1.0",
+    "nodeunit": ">=0.9.0"
+  },
+  "bin": {
+    "FileWalker": "./bin/FileWalker"
+  },
+  "directories": {
+    "lib": "./lib",
+    "doc": "./doc",
+    "man": "./man1"
+  },
+  "dependencies": {
+    "walker": ">=1.0.5",
+    "line-reader": ">=0.2.3",
+    "underscore": ">=1.6.0"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/nodeunit.cmd test/"
+  }
+}
