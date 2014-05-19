@@ -35,7 +35,7 @@ exports.testReadFile = function(test){
 
 
 
-
+/*
 exports.writeToFile = function(test){
    var fileToAppend = 'test/resources/output/test1.txt';
     fs.writeFile(fileToAppend,'');
@@ -55,7 +55,7 @@ exports.writeToFile = function(test){
     }
    test.done();
 };
-
+*/
 
 exports.testReadParsedFile = function(test){
 
@@ -63,47 +63,28 @@ exports.testReadParsedFile = function(test){
     var stat = logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/test1.txt',
         function parseF(line){
             var result = line.match(pattern);
-            return {
-                date: result[1],
-                objective: result[2],
-                responseTime: 0,
-                parseFunction: parseF
-            }
-        },
-        function (stat){
-            _.forEach(stat, function(elem){console.log(elem)});
-        }
-    )
-
-    test.done();
-
-    /*
-    var struct = {};
-    logAnalyzer.readFile('/Users/Staszek/dev/projects/LogAnalyzerJS/test/resources/output/test1.txt',
-        function(line){
-            var result = line.match(pattern);
             if (result){
-                var date = new Date(result[1]);
-                var dateStr = "" + date.getFullYear() + "-" + ('0'+(date.getMonth()+1)).slice(-2)  + "-" + ('0'+date.getDate()).slice(-2) + " "
-                    + ('0'+date.getHours()).slice(-2) + ':' + ('0'+date.getMinutes()).slice(-2) + ':' + ('0'+date.getSeconds()).slice(-2)
-                var what = result[2];
-                if (struct[what] && struct[what][dateStr]){
-                    struct[what][dateStr]['amount']++;
-                } else {
-                    struct[what]={};
-                    struct[what][dateStr]={};
-                    struct[what][dateStr]['amount'] = 1;
-                    struct[what][dateStr]['responseTime'] = 0;
+                return {
+                    parseFunction: parseF,
+                    data: {
+                        date: result[1],
+                        objective: result[2],
+                        responseTime: 0
+                    }
+                }
+            } else {
+                return {
+                    parseFunction: parseF
                 }
             }
         },
-        function(){
-            console.log("Koniec !!!")
-            console.log(struct)
+        function (stat){
+            var objectives = _.chain(stat).pluck('objective').sortBy(function(a) {return a}).uniq(true).value();
+            test.equal(_.all(_.zip(objectives,['321 !@#', 'abc 123', 'cde !@#']), function(x){return x[0]===x[1]}),true)
             test.done();
         }
-    );
-    */
+    )
+
 };
 
 

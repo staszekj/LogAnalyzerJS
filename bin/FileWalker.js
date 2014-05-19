@@ -47,13 +47,15 @@ var logAnalyzer = {
         logAnalyzer.readFile(file,
             function(line){
                 var  parsedLine = parseFunction(line);
-                if (parsedLine){
-                    var date = new Date(parsedLine.date);
+                parseFunction = parsedLine.parseFunction;
+                var parsedLineData = parsedLine.data;
+                if (parsedLineData){
+                    var date = new Date(parsedLineData.date);
                     var dateStr = "" + date.getFullYear() + "-" + ('0'+(date.getMonth()+1)).slice(-2)  + "-" + ('0'+date.getDate()).slice(-2) + " "
                         + ('0'+date.getHours()).slice(-2) + ':' + ('0'+date.getMinutes()).slice(-2) + ':' + ('0'+date.getSeconds()).slice(-2)
-                    var objective = parsedLine.objective;
-                    var responseTime = parsedLine.responseTime;
-                    parseFunction = parsedLine.parseFunction;
+                    var objective = parsedLineData.objective;
+                    var responseTime = parsedLineData.responseTime;
+
                     var agregateSingleAResult = _.find(result,function(elem){return (elem.objective === objective && elem.dateStr === dateStr)})
                     if (!agregateSingleAResult){
                         result.push({objective: objective, dateStr: dateStr, amount: 1, responseTime:responseTime})
@@ -70,7 +72,6 @@ var logAnalyzer = {
     }
 
 }
-//bb
 
 module.exports = logAnalyzer;
 
