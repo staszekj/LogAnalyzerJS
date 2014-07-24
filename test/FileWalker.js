@@ -1,9 +1,11 @@
 var logAnalyzer = require ('../bin/FileWalker'),
 _ = require('../node_modules/underscore'),
-fs = require('fs');
+fs = require('fs'),
+moment = require('../node_modules/moment')
 
 
-exports.testFileWalker = function(test){
+
+exports['testFileWalker'] = function(test){
     var files = [];
     logAnalyzer.walk(['test/resources'],
         function(basedir, entry){
@@ -17,7 +19,7 @@ exports.testFileWalker = function(test){
 };
 
 
-exports.testReadFile = function(test){
+exports['testReadFile'] = function(test){
     var lines = [];
     logAnalyzer.readFile('test/resources/cc.txt',
         function(line){
@@ -34,53 +36,20 @@ exports.testReadFile = function(test){
 };
 
 
+exports['testReadParsedFile'] = function(test){
 
-/*
-exports.writeToFile = function(test){
-   var fileToAppend = 'test/resources/output/test1.txt';
-    fs.writeFile(fileToAppend,'');
-    for (i=1; i<=10; i++){
-        var now = new Date();
-        fs.appendFile(fileToAppend,now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2)
-            + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2) + '.' + ('00' + now.getMilliseconds()).slice(-3) + " * abc 123 \n");
+    logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/test1.txt',
 
-
-        fs.appendFile(fileToAppend,now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2)
-            + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2) + '.' + ('00' + now.getMilliseconds()).slice(-3) + " ** cde !@# \n")
-
-
-        fs.appendFile(fileToAppend,now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2)
-            + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2) + '.' + ('00' + now.getMilliseconds()).slice(-3) + " *** 321 !@# \n")
-
-    }
-   test.done();
-};
-*/
-
-exports.testReadParsedFile = function(test){
-
-    var pattern = /([\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2}\.[\d]{3}) .*\*+ (.*)/
-    var stat = logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/test1.txt',
-        function parseF(line){
-            var result = line.match(pattern);
-            if (result){
-                return {
-                    parseFunction: parseF,
-                    data: {
-                        date: result[1],
-                        objective: result[2],
-                        responseTime: 0
-                    }
-                }
-            } else {
-                return {
-                    parseFunction: parseF
-                }
-            }
-        },
         function (stat){
+
             var objectives = _.chain(stat).pluck('objective').sortBy(function(a) {return a}).uniq(true).value();
+            var datesStr = _.chain(stat).pluck('dateStr').sortBy(function(a) {return a}).uniq(true).value();
+
             test.equal(_.all(_.zip(objectives,['321 !@#', 'abc 123', 'cde !@#']), function(x){return x[0]===x[1]}),true)
+            test.equal(_.all(_.zip(datesStr,['2014-05-12 19:32', '2014-05-12 19:33', '2014-05-12 19:34']), function(x){return x[0]===x[1]}),true)
+
+            logAnalyzer.writeStat('test/resources/output/test1.txt',stat);
+
             test.done();
         }
     )
