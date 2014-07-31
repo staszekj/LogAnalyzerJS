@@ -43,32 +43,64 @@ var logAnalyzer = {
 
     makeStatisticForFile: function (file, onEnd) {
 
+
+        //var pattern1 = new RegExp('.*\\[com.abb.nps.server.NpsService\\] \\(([^\\|]+)\\) BEFORE REQUEST DESERIALIZED: [0-9]+\\|[0-9]+\\|[0-9]+\\|http[^\\|]+\\|[A-Z0-9]{32}\\|([^\\|]+)\\|([^\\|]+)\\|.+/');
+        //var pattern1 = /.*\[com.abb.nps.server.NpsService\] \(([^\|]+)\).+/
+
+
+        // .*\[com.abb.nps.server.NpsService\] \(([^\|]+)\) BEFORE REQUEST DESERIALIZED: [0-9]+\|[0-9]+\|[0-9]+\|http[^\|]+\|[A-Z0-9]{32}\|([^\|]+)\|([^\|]+)\|.+/
         var parsingState = {
-            xxx: "yyy",
+            threadData: {},
             result: []
         }
-
+        /*
+         /.*\[com.abb.nps.server.NpsService\] \(([^\|]+)\) BEFORE REQUEST DESERIALIZED: [0-9]+\|[0-9]+\|[0-9]+\|http[^\|]+\|[A-Z0-9]{32}\|([^\|]+)\|([^\|]+)\|.+ • – — . / [.*\[com.abb.nps.server.NpsService\] \(([^\|]+)\) AFTER RESPONSE SERIALIZED: ([0-9]+) //OK.*
+         */
         var parseFunction = function (parsingState, line) {
-            var result = line.match(/([\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2}\.[\d]{3}) .*\*+ (.*)/);
-            if (result) {
 
-                var date = new Date(result[1]);
-                var dateStr = "" + date.getFullYear() + "-" + ('0' + (date.getMonth() + 1)).slice(-2) + "-" + ('0' + date.getDate()).slice(-2) + " "
-                    + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2)
-                var objective = result[2];
-                var responseTime = 0;
+            var words = line.split('|');
 
-                var agregateSingleAResult = _.find(parsingState.result, function (elem) {
-                    return (elem.objective === objective && elem.dateStr === dateStr)
-                })
-                if (!agregateSingleAResult) {
-                    parsingState.result.push({objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime})
-                } else {
-                    agregateSingleAResult.amount++;
-                    agregateSingleAResult.responseTime = Math.max(agregateSingleAResult.responseTime, responseTime);
+            var m = moment(line.substr(0, 23), "YYYY-MM-DD HH:mm:ss,SSS");
+            if (!m.isValid()) {
+                return parsingState;
+            }
+
+            var init = words[0].indexOf('(');
+            var fin = words[0].indexOf(')');
+            var thread = words[0].substr(init + 1, fin - init - 1)
+
+            if (line.indexOf('BEFORE REQUEST DESERIALIZED') > -1) {
+
+                var dateStr = m.format('YYYY-MM-DD HH:mm');
+                var objective = words[5] + "#" + words[6];
+
+                parsingState.threadData[thread] = {dateStr: dateStr, date: m, objective: objective}
+
+            }
+
+            if (line.indexOf('AFTER RESPONSE SERIALIZED') > -1) {
+
+                var threadData = parsingState.threadData[thread];
+                if (threadData) {
+
+                    delete parsingState.threadData[thread];
+                    var dateStr = threadData.dateStr;
+                    var objective = threadData.objective;
+                    var responseTime = m.diff(threadData.date);
+
+                    var agregateSingleAResult = _.find(parsingState.result, function (elem) {
+                        return (elem.objective === objective && elem.dateStr === dateStr)
+                    })
+                    if (!agregateSingleAResult) {
+                        parsingState.result.push({objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime})
+                    } else {
+                        agregateSingleAResult.amount++;
+                        agregateSingleAResult.responseTime = Math.max(agregateSingleAResult.responseTime, responseTime);
+                    }
                 }
 
             }
+
 
             return parsingState;
 
