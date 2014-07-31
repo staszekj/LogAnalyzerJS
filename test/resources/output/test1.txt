@@ -1,8 +1,4 @@
-2014-07-07 00:12 com.abb.nps.client.AnalysisReportService#getManagersData 0
-2014-07-07 00:12 com.abb.nps.client.DashboardService#getDashboardOverviewPageInternalSurvey 0
-2014-07-07 00:12 com.abb.nps.client.DashboardService#getSurveyForDashboard 1
-2014-07-07 00:12 com.abb.nps.server.HTMLServingServlet#doGet 1
-2014-07-07 00:13 com.abb.nps.client.AnalysisReportService#getManagersData 1
-2014-07-07 00:13 com.abb.nps.client.DashboardService#getDashboardOverviewPageInternalSurvey 2
-2014-07-07 00:13 com.abb.nps.client.DashboardService#getSurveyForDashboard 0
-2014-07-07 00:13 com.abb.nps.server.HTMLServingServlet#doGet 2
+2014-07-07 00:00:00	com.abb.nps.client.AnalysisReportService#getManagersData	1	3002
+2014-07-07 00:00:00	com.abb.nps.client.DashboardService#getDashboardOverviewPageInternalSurvey	2	62516
+2014-07-07 00:00:00	com.abb.nps.client.DashboardService#getSurveyForDashboard	1	47
+2014-07-07 00:00:00	com.abb.nps.server.HTMLServingServlet#doGet	2	3

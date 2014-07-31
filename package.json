@@ -17,7 +17,7 @@
     "nodeunit": ">=0.9.0"
   },
   "bin": {
-    "FileWalker": "./bin/FileWalker"
+    "FileWalker": "./bin/app.js"
   },
   "directories": {
     "lib": "./lib",
