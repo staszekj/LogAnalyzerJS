@@ -43,7 +43,7 @@
 
             var parsingState = {
                 threadData: {},
-                result: []
+                result: {}
             }
 
             var parseFunction = function (parsingState, line) {
@@ -78,11 +78,9 @@
                         var objective = threadData.objective;
                         var responseTime = m.diff(threadData.date);
 
-                        var agregateSingleAResult = _.find(parsingState.result, function (elem) {
-                            return (elem.objective === objective && elem.dateStr === dateStr)
-                        })
+                        var agregateSingleAResult = parsingState.result[dateStr + '^' + objective]
                         if (!agregateSingleAResult) {
-                            parsingState.result.push({objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime})
+                            parsingState.result[dateStr + '^' + objective] = {objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime}
                         } else {
                             agregateSingleAResult.amount++;
                             agregateSingleAResult.responseTime = Math.max(agregateSingleAResult.responseTime, responseTime);
@@ -101,7 +99,7 @@
                     parsingState = parseFunction(parsingState, line);
                 },
                 function () {
-                    onEnd(parsingState.result);
+                    onEnd(_.values(parsingState.result));
                 }
             );
         },
