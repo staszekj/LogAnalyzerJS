@@ -6,24 +6,24 @@
         fs = require('fs'),
         lineReader = require('line-reader'),
         _ = require('underscore'),
-        moment = require('moment')
+        moment = require('moment'),
+        async = require('async')
 
 
     var logAnalyzer = {
 
-        walk: function (dirs, onFile, onEnd) {
+        walk: function (dir, onEnd) {
 
-            dirs.forEach(function (dir) {
-                    walker(dir)
-                        .on('file', function (entry, stat) {
-                            entry = entry.replace(/\\/g, '/');
-                            onFile(dir, entry.substr(dir.length));
-                        })
-                        .on('end', function () {
-                            onEnd();
-                        })
-                }
-            )
+            var files = [];
+
+            walker(dir)
+                .on('file', function (entry, stat) {
+                    entry = entry.replace(/\\/g, '/');
+                    files.push(entry);
+                })
+                .on('end', function () {
+                    onEnd(files);
+                })
 
         },
 
@@ -39,7 +39,7 @@
             });
         },
 
-        makeStatisticForFile: function (file, onEnd) {
+        calculateStat: function (file, onEnd) {
 
             var parsingState = {
                 threadData: {},
@@ -99,52 +99,89 @@
                     parsingState = parseFunction(parsingState, line);
                 },
                 function () {
-                    onEnd(_.values(parsingState.result));
+                    onEnd(null,_.values(parsingState.result));
                 }
             );
         },
 
-        calculateForPrinting: function (stat, dataForPrinting) {
+        convertStatToStatForPrinting: function (statForPrinting, stat) {
 
             var currentObjectives = _.pluck(stat, 'objective');
             var datesStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
                 return a
             }).uniq(true).value();
 
-            if (_.isUndefined(dataForPrinting)){
-                dataForPrinting = {
-                    firstDate : moment(_.first(datesStr)).startOf('hour'),
-                    lastDate : moment(_.last(datesStr)).startOf('hour'),
+            if (_.isNull(statForPrinting)) {
+                statForPrinting = {
+                    firstDate: moment(_.first(datesStr)).startOf('hour'),
+                    lastDate: moment(_.last(datesStr)).startOf('hour'),
                     data: [],
                     objectives: currentObjectives
                 }
             } else {
-                dataForPrinting.firstDate = moment.min(dataForPrinting.firstDate, moment(_.first(datesStr)).startOf('hour'));
-                dataForPrinting.lastDate = moment.max(dataForPrinting.lastDate, moment(_.last(datesStr)).startOf('hour'));
-                dataForPrinting.objectives = _.union(dataForPrinting.objectives, currentObjectives)
+                statForPrinting.firstDate = moment.min(statForPrinting.firstDate, moment(_.first(datesStr)).startOf('hour'));
+                statForPrinting.lastDate = moment.max(statForPrinting.lastDate, moment(_.last(datesStr)).startOf('hour'));
+                statForPrinting.objectives = _.union(statForPrinting.objectives, currentObjectives)
             }
 
-            dataForPrinting.objectives = _.chain(dataForPrinting.objectives).sortBy(function (a) {
+            statForPrinting.objectives = _.chain(statForPrinting.objectives).sortBy(function (a) {
                 return a
             }).uniq(true).value();
 
             _.each(stat, function (ele) {
                 var key = ele.dateStr.substr(0, 13) + '^' + ele.objective;
-                var currentMax = dataForPrinting.data[key];
-                if (_.isUndefined(currentMax)){
-                    currentMax = dataForPrinting.data[key] = {amount: 0, responseTime: 0};
+                var currentMax = statForPrinting.data[key];
+                if (_.isUndefined(currentMax)) {
+                    currentMax = statForPrinting.data[key] = {amount: 0, responseTime: 0};
                 }
                 currentMax.amount = Math.max(currentMax.amount, ele.amount);
                 currentMax.responseTime = Math.max(currentMax.responseTime, ele.responseTime);
             })
 
 
-            return dataForPrinting;
+            return statForPrinting;
 
 
         },
 
-        saveData: function (dataForPrinting, file) {
+        mergeStatOfFiles: function (statOfFiles) {
+
+            var stat = {}
+
+            for (var i = 0; i < statOfFiles.length; i++) {
+                _.each(statOfFiles[i], function (ele) {
+                    var key = ele.dateStr + '^' + ele.objective;
+                    var current = stat[key];
+                    if (_.isUndefined(current)) {
+                        current = stat[key] = ele;
+                    } else {
+
+                        current.amount = current.amount + ele.amount;
+                        current.responseTime = Math.max(current.responseTime, ele.responseTime);
+                    }
+                })
+            }
+
+            return _.values(stat);
+
+        },
+
+        calculateStatForPrinting: function (dirFrom, onReady) {
+
+            var self = this;
+
+            logAnalyzer.walk(dirFrom,
+                function(files){
+                    async.map(files, self.calculateStat, function(err,statOfFiles){
+                        var mergedStats = self.mergeStatOfFiles(statOfFiles);
+                        var statForPrinting = self.convertStatToStatForPrinting(null, mergedStats);
+                        onReady(statForPrinting)
+                    })
+                })
+
+        },
+
+        printData: function (dataForPrinting, file) {
 
             var stream = fs.createWriteStream(file);
             stream.once('open', function (fd) {
@@ -165,13 +202,15 @@
 
         },
 
-        runApplicationForOneFile: function (fileFrom, fileTo) {
-            var self = this;
-            this.makeStatisticForFile(fileFrom, function (stat) {
-                self.saveData(self.calculateForPrinting(stat), fileTo)
-            })
-        }
+        runApplicationForDirectory: function (dirFrom, fileTo) {
 
+            var self = this;
+
+            this.calculateStatForPrinting(dirFrom, function (statForPrinting) {
+                self.printData(statForPrinting, fileTo)
+            })
+
+        }
 
 
     }
@@ -179,6 +218,7 @@
 
     module.exports = logAnalyzer;
 
-})()
+})
+()
 
 

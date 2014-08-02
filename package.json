@@ -28,7 +28,8 @@
     "walker": ">=1.0.5",
     "line-reader": ">=0.2.3",
     "underscore": ">=1.6.0",
-    "moment": ""
+    "moment": "",
+    "async": ""
   },
   "scripts": {
     "test": "./node_modules/.bin/nodeunit.cmd test/"

@@ -1,0 +1,4 @@
+2014-07-07 00:13:12,900 INFO  not_logged_user [com.abb.nps.server.NpsService] (http--0.0.0.0-80-22) BEFORE REQUEST DESERIALIZED: 7|0|9|http://localhost:8080/nps/|45FAF57F1F66F26931728E64D7CA621D|com.abb.nps.server.HTMLServingServlet|doGet|000|
+2014-07-07 00:13:12,901 INFO  not_logged_user [com.abb.nps.server.NpsService] (http--0.0.0.0-80-22) AFTER RESPONSE SERIALIZED: 3 //OK[0]
+2014-07-07 01:00:00,900 INFO  not_logged_user [com.abb.nps.server.NpsService] (http--0.0.0.0-80-23) BEFORE REQUEST DESERIALIZED: 7|0|9|http://localhost:8080/nps/|45FAF57F1F66F26931728E64D7CA621D|com.abb.nps.server.HTMLServingServlet|doGet|000|
+2014-07-07 01:00:00,902 INFO  not_logged_user [com.abb.nps.server.NpsService] (http--0.0.0.0-80-23) AFTER RESPONSE SERIALIZED: 3 //OK[0]

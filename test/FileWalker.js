@@ -5,13 +5,10 @@ var logAnalyzer = require('../bin/FileWalker'),
 
 
 exports['testFileWalker'] = function (test) {
-    var files = [];
-    logAnalyzer.walk(['test/resources'],
-        function (basedir, entry) {
-            files.push(entry)
-        },
-        function () {
-            test.equal(_.intersection(files, [ '/b/bb2.txt', '/cc.txt', '/a/aa.txt', '/b/bb1.txt']).length, 4);
+
+    logAnalyzer.walk('test/resources',
+        function (files) {
+            test.equal(_.intersection(files, [ 'test/resources/b/bb2.txt', 'test/resources/cc.txt', 'test/resources/a/aa.txt', 'test/resources/b/bb1.txt']).length, 4);
             test.done()
         }
     );
@@ -39,10 +36,10 @@ exports['testReadFile'] = function (test) {
 
 exports['testReadParsedFile'] = function (test) {
 
-    logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/test1.txt',
-        //logAnalyzer.makeStatisticForFile('test/resources/testSingleFile/remote-service.log.txt',
+    logAnalyzer.calculateStat('test/resources/testSingleFile/test1.txt',
+        //logAnalyzer.calculateStat('test/resources/testSingleFile/remote-service.log.txt',
 
-        function (stat) {
+        function (err,stat) {
 
             var objectives = _.chain(stat).pluck('objective').sortBy(function (a) {
                 return a
@@ -75,7 +72,7 @@ exports['testReadParsedFile'] = function (test) {
             }) != undefined, true)
 
 
-            logAnalyzer.saveData(logAnalyzer.calculateForPrinting(stat), 'test/resources/output/test1.txt');
+            logAnalyzer.printData(logAnalyzer.convertStatToStatForPrinting(null, stat), 'test/resources/output/test1.txt');
 
             test.done();
         }
@@ -100,7 +97,7 @@ exports['testcalculateForPrinting'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.calculateForPrinting(stat);
+    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
 
     test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
     test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
@@ -138,7 +135,7 @@ exports['testcalculateForPrintingWith2Hours'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.calculateForPrinting(stat);
+    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
 
     test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
     test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 23:00:00")
@@ -171,7 +168,7 @@ exports['testcalculateForPrintingWith2Objective'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.calculateForPrinting(stat);
+    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
 
     test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
     test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 22:00:00")
@@ -205,7 +202,7 @@ exports['testcalculateForPrintingWithAlreadyExistedValue'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.calculateForPrinting(stat, {
+    var dataToPrint = logAnalyzer.convertStatToStatForPrinting({
         firstDate: moment("2014-07-06 23", "YYYY-MM-DD HH"),
         lastDate: moment("2014-07-07 15", "YYYY-MM-DD HH"),
         objectives: ['C', 'A'],
@@ -220,7 +217,7 @@ exports['testcalculateForPrintingWithAlreadyExistedValue'] = function (test) {
             }
         }
 
-    });
+    }, stat);
 
     test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-06 23:00:00")
     test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 22:00:00")
@@ -239,9 +236,68 @@ exports['testcalculateForPrintingWithAlreadyExistedValue'] = function (test) {
 
 }
 
+exports['testMergeStatOfFiles'] = function (test) {
 
-exports.quebeck = function (test) {
+    var statOfFiles = [
+        [
+            {
+                objective: 'B',
+                dateStr: '2014-07-07 00:13',
+                amount: 7,
+                responseTime: 15
+            },
+            {
+                objective: 'A',
+                dateStr: '2014-07-07 22:14',
+                amount: 13,
+                responseTime: 20
+            }
+        ],
+        [
+            {
+                objective: 'B',
+                dateStr: '2014-07-07 00:13',
+                amount: 7,
+                responseTime: 15
+            },
+            {
+                objective: 'A',
+                dateStr: '2014-07-07 22:14',
+                amount: 1,
+                responseTime: 21
+            },
+            {
+                objective: 'A',
+                dateStr: '2014-07-07 22:15',
+                amount: 1,
+                responseTime: 21
+            }
+        ]
+    ]
+
+    var result = logAnalyzer.mergeStatOfFiles(statOfFiles)
+    test.equal(result.length,3);
+    test.equal(_.find(result, function (elem) {
+        return (elem.objective === 'B' && elem.dateStr === '2014-07-07 00:13' && elem.amount === 14 && elem.responseTime === 15)
+    }) != undefined, true)
+    test.equal(_.find(result, function (elem) {
+        return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:14' && elem.amount === 14 && elem.responseTime === 21)
+    }) != undefined, true)
+    test.equal(_.find(result, function (elem) {
+        return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:15' && elem.amount === 1 && elem.responseTime === 21)
+    }) != undefined, true)
 
     test.done();
+}
 
-};
+exports['testcalculateStatForPrintingFromDir'] = function (test) {
+    logAnalyzer.calculateStatForPrinting('test/resources/testDirectory', function (statForPrinting) {
+        test.equal(statForPrinting.data['2014-07-07 00^com.abb.nps.server.HTMLServingServlet#doGet'].amount,2);
+        test.equal(statForPrinting.data['2014-07-07 00^com.abb.nps.server.HTMLServingServlet#doGet'].responseTime,1);
+        test.equal(statForPrinting.data['2014-07-07 01^com.abb.nps.server.HTMLServingServlet#doGet'].amount,1);
+        test.equal(statForPrinting.data['2014-07-07 01^com.abb.nps.server.HTMLServingServlet#doGet'].responseTime,2);
+        test.equal(statForPrinting.firstDate.format("YYYY-MM-DD HH"), "2014-07-07 00");
+        test.equal(statForPrinting.lastDate.format("YYYY-MM-DD HH"), "2014-07-07 01");
+        test.done();
+    })
+}
