@@ -36,8 +36,8 @@ exports['testReadFile'] = function (test) {
 
 exports['testReadParsedFile'] = function (test) {
 
-    logAnalyzer.calculateStat('test/resources/testSingleFile/test1.txt',
-        //logAnalyzer.calculateStat('test/resources/testSingleFile/remote-service.log.txt',
+    logAnalyzer.calculateStatForFile('test/resources/testSingleFile/test1.txt',
+        //logAnalyzer.calculateStatForFile('test/resources/testSingleFile/remote-service.log.txt',
 
         function (err,stat) {
 

@@ -39,7 +39,7 @@
             });
         },
 
-        calculateStat: function (file, onEnd) {
+        calculateStatForFile: function (file, onEnd) {
 
             var parsingState = {
                 threadData: {},
@@ -80,10 +80,11 @@
 
                         var agregateSingleAResult = parsingState.result[dateStr + '^' + objective]
                         if (!agregateSingleAResult) {
-                            parsingState.result[dateStr + '^' + objective] = {objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime}
+                            parsingState.result[dateStr + '^' + objective] = {objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime, totalResponseTime: responseTime}
                         } else {
                             agregateSingleAResult.amount++;
                             agregateSingleAResult.responseTime = Math.max(agregateSingleAResult.responseTime, responseTime);
+                            agregateSingleAResult.totalResponseTime = agregateSingleAResult.totalResponseTime + responseTime;
                         }
                     }
 
@@ -129,13 +130,15 @@
             }).uniq(true).value();
 
             _.each(stat, function (ele) {
+                //key is in format '2000-01-01 15^objective', so hours only without minutes
                 var key = ele.dateStr.substr(0, 13) + '^' + ele.objective;
                 var currentMax = statForPrinting.data[key];
                 if (_.isUndefined(currentMax)) {
-                    currentMax = statForPrinting.data[key] = {amount: 0, responseTime: 0};
+                    currentMax = statForPrinting.data[key] = {amount: 0, responseTime: 0, avgResponseTime: 0};
                 }
                 currentMax.amount = Math.max(currentMax.amount, ele.amount);
                 currentMax.responseTime = Math.max(currentMax.responseTime, ele.responseTime);
+                currentMax.avgResponseTime = Math.max(currentMax.avgResponseTime, Math.round(ele.totalResponseTime / ele.amount))
             })
 
 
@@ -155,9 +158,9 @@
                     if (_.isUndefined(current)) {
                         current = stat[key] = ele;
                     } else {
-
                         current.amount = current.amount + ele.amount;
                         current.responseTime = Math.max(current.responseTime, ele.responseTime);
+                        current.totalResponseTime = current.totalResponseTime + ele.totalResponseTime;
                     }
                 })
             }
@@ -172,7 +175,7 @@
 
             logAnalyzer.walk(dirFrom,
                 function(files){
-                    async.map(files, self.calculateStat, function(err,statOfFiles){
+                    async.map(files, self.calculateStatForFile, function(err,statOfFiles){
                         var mergedStats = self.mergeStatOfFiles(statOfFiles);
                         var statForPrinting = self.convertStatToStatForPrinting(null, mergedStats);
                         onReady(statForPrinting)
@@ -190,9 +193,9 @@
                     _.each(dataForPrinting.objectives, function (objective) {
                         elem = dataForPrinting.data[m.format('YYYY-MM-DD HH') + "^" + objective];
                         if (elem) {
-                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + elem.amount + '\t' + elem.responseTime + '\n');
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + elem.avgResponseTime + '\n');
                         } else {
-                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + '0' + '\t' + '0' + '\n');
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\n');
                         }
                     })
                 }
