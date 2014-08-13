@@ -134,11 +134,12 @@
                 var key = ele.dateStr.substr(0, 13) + '^' + ele.objective;
                 var currentMax = statForPrinting.data[key];
                 if (_.isUndefined(currentMax)) {
-                    currentMax = statForPrinting.data[key] = {amount: 0, responseTime: 0, avgResponseTime: 0};
+                    currentMax = statForPrinting.data[key] = {amount: 0, totalAmount: 0, responseTime: 0, totalResponseTime: 0};
                 }
                 currentMax.amount = Math.max(currentMax.amount, ele.amount);
+                currentMax.totalAmount = currentMax.totalAmount + ele.amount;
                 currentMax.responseTime = Math.max(currentMax.responseTime, ele.responseTime);
-                currentMax.avgResponseTime = Math.max(currentMax.avgResponseTime, Math.round(ele.totalResponseTime / ele.amount))
+                currentMax.totalResponseTime = currentMax.totalResponseTime + ele.totalResponseTime
             })
 
 
@@ -191,11 +192,12 @@
 
                 for (var m = dataForPrinting.firstDate; m.isBefore(dataForPrinting.lastDate) || m.isSame(dataForPrinting.lastDate); m.add('hours', 1)) {
                     _.each(dataForPrinting.objectives, function (objective) {
+                        var classMethod = objective.split('#');
                         elem = dataForPrinting.data[m.format('YYYY-MM-DD HH') + "^" + objective];
                         if (elem) {
-                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + elem.avgResponseTime + '\n');
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + elem.totalAmount + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + Math.round(elem.totalResponseTime / elem.totalAmount) + '\n');
                         } else {
-                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + objective + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\n');
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\n');
                         }
                     })
                 }

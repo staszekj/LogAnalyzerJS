@@ -185,6 +185,51 @@ exports['testcalculateForPrintingWith2Objective'] = function (test) {
 
 }
 
+
+exports['testcalculateForPrintingWithTotalTime'] = function (test) {
+
+    var stat = [
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:13',
+            amount: 7,
+            responseTime: 15,
+            totalResponseTime: 150
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:14',
+            amount: 13,
+            responseTime: 20,
+            totalResponseTime: 100
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 23:14',
+            amount: 7,
+            responseTime: 15,
+            totalResponseTime: 20
+        }
+    ]
+
+    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
+
+    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
+    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 23:00:00")
+    test.equal(dataToPrint.objectives.length, 1)
+    test.equal(dataToPrint.objectives[0], 'A');
+    test.equal(dataToPrint.data['2014-07-07 00^A'].amount, 13);
+    test.equal(dataToPrint.data['2014-07-07 00^A'].responseTime, 20);
+    test.equal(dataToPrint.data['2014-07-07 23^A'].amount, 7);
+    test.equal(dataToPrint.data['2014-07-07 23^A'].responseTime, 15);
+    test.equal(dataToPrint.data['2014-07-07 00^A'].totalResponseTime, 250);
+    test.equal(dataToPrint.data['2014-07-07 00^A'].totalAmount, 20);
+
+
+    test.done();
+
+}
+
 exports['testcalculateForPrintingWithAlreadyExistedValue'] = function (test) {
 
     var stat = [
@@ -244,13 +289,15 @@ exports['testMergeStatOfFiles'] = function (test) {
                 objective: 'B',
                 dateStr: '2014-07-07 00:13',
                 amount: 7,
-                responseTime: 15
+                responseTime: 15,
+                totalResponseTime: 10
             },
             {
                 objective: 'A',
                 dateStr: '2014-07-07 22:14',
                 amount: 13,
-                responseTime: 20
+                responseTime: 20,
+                totalResponseTime: 20
             }
         ],
         [
@@ -258,19 +305,22 @@ exports['testMergeStatOfFiles'] = function (test) {
                 objective: 'B',
                 dateStr: '2014-07-07 00:13',
                 amount: 7,
-                responseTime: 15
+                responseTime: 15,
+                totalResponseTime: 11
             },
             {
                 objective: 'A',
                 dateStr: '2014-07-07 22:14',
                 amount: 1,
-                responseTime: 21
+                responseTime: 21,
+                totalResponseTime: 20
             },
             {
                 objective: 'A',
                 dateStr: '2014-07-07 22:15',
                 amount: 1,
-                responseTime: 21
+                responseTime: 21,
+                totalResponseTime: 10
             }
         ]
     ]
@@ -278,11 +328,12 @@ exports['testMergeStatOfFiles'] = function (test) {
     var result = logAnalyzer.mergeStatOfFiles(statOfFiles)
     test.equal(result.length,3);
     test.equal(_.find(result, function (elem) {
-        return (elem.objective === 'B' && elem.dateStr === '2014-07-07 00:13' && elem.amount === 14 && elem.responseTime === 15)
+        return (elem.objective === 'B' && elem.dateStr === '2014-07-07 00:13' && elem.amount === 14 && elem.responseTime === 15 && elem.totalResponseTime === 21)
     }) != undefined, true)
     test.equal(_.find(result, function (elem) {
         return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:14' && elem.amount === 14 && elem.responseTime === 21)
     }) != undefined, true)
+
     test.equal(_.find(result, function (elem) {
         return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:15' && elem.amount === 1 && elem.responseTime === 21)
     }) != undefined, true)
