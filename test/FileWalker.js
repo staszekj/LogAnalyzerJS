@@ -352,3 +352,4 @@ exports['testcalculateStatForPrintingFromDir'] = function (test) {
         test.done();
     })
 }
+
