@@ -165,6 +165,40 @@ exports['testDateHours'] = function (test) {
 
 }
 
+exports['testDateMinutes'] = function (test) {
+
+    var stat = [
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 01:12',
+            amount: 7,
+            responseTime: 15
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:12',
+            amount: 13,
+            responseTime: 20
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:13',
+            amount: 13,
+            responseTime: 20
+        }
+    ]
+
+    var firstDateMinutes = logAnalyzer.getFirstDateMinutes(stat);
+    var lastDateMinutes = logAnalyzer.getLastDateMinutes(stat);
+
+    test.equal(firstDateMinutes.format("YYYY-MM-DD HH:mm"), '2014-07-07 00:12');
+    test.equal(lastDateMinutes.format("YYYY-MM-DD HH:mm"), '2014-07-07 01:12');
+
+
+    test.done();
+
+}
+
 exports['testMinutesToHours2'] = function (test) {
 
     var stat = [

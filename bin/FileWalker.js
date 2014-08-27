@@ -17,8 +17,8 @@
             var self = this;
 
             this.parseFiles(dirFrom, function (statMinutes, statHours) {
-                self.printDataMinutes(statMinutes, fileTo + '_Hours.txt');
-                self.printDataHours(statHours, fileTo + '_Minutes.txt');
+                self.printDataMinutes(statMinutes, fileTo + '_Minutes.txt');
+                self.printDataHours(statHours, fileTo + '_Hours.txt');
             })
 
         },
@@ -267,7 +267,7 @@
                 for (var m = firstDate; m.isBefore(lastDate) || m.isSame(lastDate); m.add('minutes', 1)) {
                     _.each(objectives, function (objective) {
                         var classMethod = objective.split('#');
-                        elem = statHours[m.format('YYYY-MM-DD HH:mm') + "#" + objective];
+                        elem = statMinutes[m.format('YYYY-MM-DD HH:mm') + "#" + objective];
                         if (elem) {
                             stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + elem.totalAmount + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + Math.round(elem.totalResponseTime / elem.totalAmount) + '\n');
                         } else {
