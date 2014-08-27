@@ -12,6 +12,32 @@
 
     var logAnalyzer = {
 
+        runApplicationForDirectory: function (dirFrom, fileTo) {
+
+            var self = this;
+
+            this.parseFiles(dirFrom, function (statMinutes, statHours) {
+                self.printDataMinutes(statMinutes, fileTo + '_Hours.txt');
+                self.printDataHours(statHours, fileTo + '_Minutes.txt');
+            })
+
+        },
+
+        parseFiles: function (dirFrom, onReady) {
+
+            var self = this;
+
+            logAnalyzer.walk(dirFrom,
+                function (files) {
+                    async.map(files, self.convertFileToStatFile, function (err, statOfFiles) {
+                        var statMinutes = self.convertStatFilesToStatMinutes(_.flatten(statOfFiles));
+                        var statHours = self.convertStatMinutesToStatHours(_.values(statMinutes));
+                        onReady(statMinutes, statHours)
+                    })
+                })
+
+        },
+
         walk: function (dir, onEnd) {
 
             var files = [];
@@ -39,7 +65,7 @@
             });
         },
 
-        calculateStatForFile: function (file, onEnd) {
+        convertFileToStatFile: function (file, onEnd) {
 
             var parsingState = {
                 threadData: {},
@@ -78,9 +104,9 @@
                         var objective = threadData.objective;
                         var responseTime = m.diff(threadData.date);
 
-                        var agregateSingleAResult = parsingState.result[dateStr + '^' + objective]
+                        var agregateSingleAResult = parsingState.result[dateStr + '#' + objective]
                         if (!agregateSingleAResult) {
-                            parsingState.result[dateStr + '^' + objective] = {objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime, totalResponseTime: responseTime}
+                            parsingState.result[dateStr + '#' + objective] = {objective: objective, dateStr: dateStr, amount: 1, responseTime: responseTime, totalResponseTime: responseTime}
                         } else {
                             agregateSingleAResult.amount++;
                             agregateSingleAResult.responseTime = Math.max(agregateSingleAResult.responseTime, responseTime);
@@ -100,41 +126,50 @@
                     parsingState = parseFunction(parsingState, line);
                 },
                 function () {
-                    onEnd(null,_.values(parsingState.result));
+                    onEnd(null, _.values(parsingState.result));
                 }
             );
         },
 
-        convertStatToStatForPrinting: function (statForPrinting, stat) {
+        /**
+         * Convert array of information about single minutes to map where key is '2014-02-02 12:23#abc' -> minute structure
+         */
+        convertStatFilesToStatMinutes: function (statFiles) {
 
-            var currentObjectives = _.pluck(stat, 'objective');
-            var datesStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
-                return a
-            }).uniq(true).value();
+            var statMiniutes = {}
 
-            if (_.isNull(statForPrinting)) {
-                statForPrinting = {
-                    firstDate: moment(_.first(datesStr)).startOf('hour'),
-                    lastDate: moment(_.last(datesStr)).startOf('hour'),
-                    data: [],
-                    objectives: currentObjectives
+            _.each(statFiles, function (ele) {
+                var key = ele.dateStr + '#' + ele.objective;
+                var current = statMiniutes[key];
+                if (_.isUndefined(current)) {
+                    current = statMiniutes[key] = ele;
+                } else {
+                    current.amount = current.amount + ele.amount;
+                    current.responseTime = Math.max(current.responseTime, ele.responseTime);
+                    current.totalResponseTime = current.totalResponseTime + ele.totalResponseTime;
                 }
-            } else {
-                statForPrinting.firstDate = moment.min(statForPrinting.firstDate, moment(_.first(datesStr)).startOf('hour'));
-                statForPrinting.lastDate = moment.max(statForPrinting.lastDate, moment(_.last(datesStr)).startOf('hour'));
-                statForPrinting.objectives = _.union(statForPrinting.objectives, currentObjectives)
-            }
+            })
 
-            statForPrinting.objectives = _.chain(statForPrinting.objectives).sortBy(function (a) {
-                return a
-            }).uniq(true).value();
+            return statMiniutes;
 
-            _.each(stat, function (ele) {
-                //key is in format '2000-01-01 15^objective', so hours only without minutes
-                var key = ele.dateStr.substr(0, 13) + '^' + ele.objective;
-                var currentMax = statForPrinting.data[key];
+        },
+
+        /**
+         * Convert array of information about single minutes to map where key is '2014-02-02 12#abc' -> hour structure
+         */
+        convertStatMinutesToStatHours: function (statMinutes) {
+
+            var statHours = {};
+
+
+            _.each(statMinutes, function (ele) {
+                //key is in format '2000-01-01 15#objective', so hours only without minutes
+                var aDateStr = ele.dateStr.substr(0, 13)
+                var aObjective = ele.objective;
+                var key = aDateStr + '#' + aObjective;
+                var currentMax = statHours[key];
                 if (_.isUndefined(currentMax)) {
-                    currentMax = statForPrinting.data[key] = {amount: 0, totalAmount: 0, responseTime: 0, totalResponseTime: 0};
+                    currentMax = statHours[key] = {dateStr: aDateStr, objective: aObjective, amount: 0, totalAmount: 0, responseTime: 0, totalResponseTime: 0};
                 }
                 currentMax.amount = Math.max(currentMax.amount, ele.amount);
                 currentMax.totalAmount = currentMax.totalAmount + ele.amount;
@@ -143,57 +178,68 @@
             })
 
 
-            return statForPrinting;
+            return statHours;
 
 
         },
 
-        mergeStatOfFiles: function (statOfFiles) {
+        getObjectives: function (stat) {
 
-            var stat = {}
-
-            for (var i = 0; i < statOfFiles.length; i++) {
-                _.each(statOfFiles[i], function (ele) {
-                    var key = ele.dateStr + '^' + ele.objective;
-                    var current = stat[key];
-                    if (_.isUndefined(current)) {
-                        current = stat[key] = ele;
-                    } else {
-                        current.amount = current.amount + ele.amount;
-                        current.responseTime = Math.max(current.responseTime, ele.responseTime);
-                        current.totalResponseTime = current.totalResponseTime + ele.totalResponseTime;
-                    }
-                })
-            }
-
-            return _.values(stat);
+            return _.chain(stat).pluck('objective').sortBy(function (a) {
+                return a
+            }).uniq(true).value();
 
         },
 
-        calculateStatForPrinting: function (dirFrom, onReady) {
+        getFirstDateHours: function (stat) {
+
+            var firstDateHourStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
+                return a
+            }).uniq(true).first().value();
+
+            return moment(firstDateHourStr, "YYYY-MM-DD HH").startOf('hour');
+        },
+
+        getLastDateHours: function (stat) {
+            var lastDateHourStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
+                return a
+            }).uniq(true).last().value();
+
+            return moment(lastDateHourStr, "YYYY-MM-DD HH").startOf('hour');
+        },
+
+        getFirstDateMinutes: function (stat) {
+
+            var firstDateHourStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
+                return a
+            }).uniq(true).first().value();
+
+            return moment(firstDateHourStr, "YYYY-MM-DD HH:mm").startOf('minute');
+        },
+
+        getLastDateMinutes: function (stat) {
+            var lastDateHourStr = _.chain(stat).pluck('dateStr').sortBy(function (a) {
+                return a
+            }).uniq(true).last().value();
+
+            return moment(lastDateHourStr, "YYYY-MM-DD HH:mm").startOf('minute');
+        },
+
+        printDataHours: function (statHours, file) {
 
             var self = this;
-
-            logAnalyzer.walk(dirFrom,
-                function(files){
-                    async.map(files, self.calculateStatForFile, function(err,statOfFiles){
-                        var mergedStats = self.mergeStatOfFiles(statOfFiles);
-                        var statForPrinting = self.convertStatToStatForPrinting(null, mergedStats);
-                        onReady(statForPrinting)
-                    })
-                })
-
-        },
-
-        printData: function (dataForPrinting, file) {
 
             var stream = fs.createWriteStream(file);
             stream.once('open', function (fd) {
 
-                for (var m = dataForPrinting.firstDate; m.isBefore(dataForPrinting.lastDate) || m.isSame(dataForPrinting.lastDate); m.add('hours', 1)) {
-                    _.each(dataForPrinting.objectives, function (objective) {
+                var firstDate = self.getFirstDateHours(_.values(statHours));
+                var lastDate = self.getLastDateHours(_.values(statHours));
+                var objectives = self.getObjectives(_.values(statHours));
+
+                for (var m = firstDate; m.isBefore(lastDate) || m.isSame(lastDate); m.add('hours', 1)) {
+                    _.each(objectives, function (objective) {
                         var classMethod = objective.split('#');
-                        elem = dataForPrinting.data[m.format('YYYY-MM-DD HH') + "^" + objective];
+                        elem = statHours[m.format('YYYY-MM-DD HH') + "#" + objective];
                         if (elem) {
                             stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + elem.totalAmount + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + Math.round(elem.totalResponseTime / elem.totalAmount) + '\n');
                         } else {
@@ -207,13 +253,32 @@
 
         },
 
-        runApplicationForDirectory: function (dirFrom, fileTo) {
+        printDataMinutes: function (statMinutes, file) {
 
             var self = this;
 
-            this.calculateStatForPrinting(dirFrom, function (statForPrinting) {
-                self.printData(statForPrinting, fileTo)
-            })
+            var stream = fs.createWriteStream(file);
+            stream.once('open', function (fd) {
+
+                var firstDate = self.getFirstDateHours(_.values(statMinutes));
+                var lastDate = self.getLastDateHours(_.values(statMinutes));
+                var objectives = self.getObjectives(_.values(statMinutes));
+
+                for (var m = firstDate; m.isBefore(lastDate) || m.isSame(lastDate); m.add('minutes', 1)) {
+                    _.each(objectives, function (objective) {
+                        var classMethod = objective.split('#');
+                        elem = statHours[m.format('YYYY-MM-DD HH:mm') + "#" + objective];
+                        if (elem) {
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + elem.totalAmount + '\t' + elem.amount + '\t' + elem.responseTime + '\t' + Math.round(elem.totalResponseTime / elem.totalAmount) + '\n');
+                        } else {
+                            stream.write(m.format('YYYY-MM-DD HH:mm:ss') + '\t' + classMethod[0] + '\t' + classMethod[1] + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\t' + '0' + '\n');
+                        }
+                    })
+                }
+
+                stream.end();
+            });
+
 
         }
 

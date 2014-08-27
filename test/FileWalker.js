@@ -36,10 +36,9 @@ exports['testReadFile'] = function (test) {
 
 exports['testReadParsedFile'] = function (test) {
 
-    logAnalyzer.calculateStatForFile('test/resources/testSingleFile/test1.txt',
-        //logAnalyzer.calculateStatForFile('test/resources/testSingleFile/remote-service.log.txt',
+    logAnalyzer.convertFileToStatFile('test/resources/testSingleFile/test1.txt',
 
-        function (err,stat) {
+        function (err, stat) {
 
             var objectives = _.chain(stat).pluck('objective').sortBy(function (a) {
                 return a
@@ -72,7 +71,7 @@ exports['testReadParsedFile'] = function (test) {
             }) != undefined, true)
 
 
-            logAnalyzer.printData(logAnalyzer.convertStatToStatForPrinting(null, stat), 'test/resources/output/test1.txt');
+            logAnalyzer.printDataHours(logAnalyzer.convertStatMinutesToStatHours(_.values(logAnalyzer.convertStatFilesToStatMinutes(stat))), 'test/resources/output/test1.txt');
 
             test.done();
         }
@@ -80,7 +79,38 @@ exports['testReadParsedFile'] = function (test) {
 
 };
 
-exports['testcalculateForPrinting'] = function (test) {
+exports['testMinutesToHours'] = function (test) {
+
+    var stat = [
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:13',
+            amount: 7,
+            responseTime: 15,
+            totalResponseTime: 10
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00:14',
+            amount: 13,
+            responseTime: 20,
+            totalResponseTime: 11
+        }
+    ]
+
+    var statHours = logAnalyzer.convertStatMinutesToStatHours(stat);
+
+    test.equal(statHours['2014-07-07 00#A'].amount, 13);
+    test.equal(statHours['2014-07-07 00#A'].totalAmount, 20);
+    test.equal(statHours['2014-07-07 00#A'].totalResponseTime, 21);
+    test.equal(statHours['2014-07-07 00#A'].responseTime, 20);
+
+
+    test.done();
+
+}
+
+exports['testObjectives'] = function (test) {
 
     var stat = [
         {
@@ -97,22 +127,45 @@ exports['testcalculateForPrinting'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
+    var objectives = logAnalyzer.getObjectives(stat);
 
-    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
-    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
-    test.equal(dataToPrint.objectives.length, 1)
-    test.equal(dataToPrint.objectives[0], 'A');
-    test.equal(dataToPrint.data['2014-07-07 00^A'].amount, 13);
-    test.equal(dataToPrint.data['2014-07-07 00^A'].responseTime, 20);
+    test.equal(objectives.length, 1)
+    test.equal(objectives[0], 'A');
 
 
     test.done();
 
 }
 
+exports['testDateHours'] = function (test) {
 
-exports['testcalculateForPrintingWith2Hours'] = function (test) {
+    var stat = [
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00',
+            amount: 7,
+            responseTime: 15
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00',
+            amount: 13,
+            responseTime: 20
+        }
+    ]
+
+    var firstDateHours = logAnalyzer.getFirstDateHours(stat);
+    var lastDateHours = logAnalyzer.getLastDateHours(stat);
+
+    test.equal(firstDateHours.format("YYYY-MM-DD HH"), '2014-07-07 00');
+    test.equal(lastDateHours.format("YYYY-MM-DD HH"), '2014-07-07 00');
+
+
+    test.done();
+
+}
+
+exports['testMinutesToHours2'] = function (test) {
 
     var stat = [
         {
@@ -135,23 +188,53 @@ exports['testcalculateForPrintingWith2Hours'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
+    var dataToPrint = logAnalyzer.convertStatMinutesToStatHours(stat);
 
-    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
-    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 23:00:00")
-    test.equal(dataToPrint.objectives.length, 1)
-    test.equal(dataToPrint.objectives[0], 'A');
-    test.equal(dataToPrint.data['2014-07-07 00^A'].amount, 13);
-    test.equal(dataToPrint.data['2014-07-07 00^A'].responseTime, 20);
-    test.equal(dataToPrint.data['2014-07-07 23^A'].amount, 7);
-    test.equal(dataToPrint.data['2014-07-07 23^A'].responseTime, 15);
+    test.equal(dataToPrint['2014-07-07 00#A'].amount, 13);
+    test.equal(dataToPrint['2014-07-07 00#A'].responseTime, 20);
+    test.equal(dataToPrint['2014-07-07 23#A'].amount, 7);
+    test.equal(dataToPrint['2014-07-07 23#A'].responseTime, 15);
 
 
     test.done();
 
 }
 
-exports['testcalculateForPrintingWith2Objective'] = function (test) {
+exports['testMinutesToHours3'] = function (test) {
+
+    var stat = [
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00',
+            amount: 7,
+            responseTime: 15
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 00',
+            amount: 13,
+            responseTime: 20
+        },
+        {
+            objective: 'A',
+            dateStr: '2014-07-07 23',
+            amount: 7,
+            responseTime: 15
+        }
+    ]
+
+    var firstDateHours = logAnalyzer.getFirstDateHours(stat);
+    var lastDateHours = logAnalyzer.getLastDateHours(stat);
+
+    test.equal(firstDateHours.format("YYYY-MM-DD HH"), "2014-07-07 00")
+    test.equal(lastDateHours.format("YYYY-MM-DD HH"), "2014-07-07 23")
+
+
+    test.done();
+
+}
+
+exports['testMinutesToHours4'] = function (test) {
 
     var stat = [
         {
@@ -168,17 +251,20 @@ exports['testcalculateForPrintingWith2Objective'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
+    var dataToPrint = logAnalyzer.convertStatMinutesToStatHours(stat);
+    var objectives = logAnalyzer.getObjectives(stat);
+    var firstDateHours = logAnalyzer.getFirstDateHours(stat);
+    var lastDateHours = logAnalyzer.getLastDateHours(stat);
 
-    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
-    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 22:00:00")
-    test.equal(dataToPrint.objectives.length, 2)
-    test.equal(dataToPrint.objectives[0], 'A');
-    test.equal(dataToPrint.objectives[1], 'B');
-    test.equal(dataToPrint.data['2014-07-07 22^A'].amount, 13);
-    test.equal(dataToPrint.data['2014-07-07 22^A'].responseTime, 20);
-    test.equal(dataToPrint.data['2014-07-07 00^B'].amount, 7);
-    test.equal(dataToPrint.data['2014-07-07 00^B'].responseTime, 15);
+    test.equal(firstDateHours.format("YYYY-MM-DD HH"), "2014-07-07 00")
+    test.equal(lastDateHours.format("YYYY-MM-DD HH"), "2014-07-07 22")
+    test.equal(objectives.length, 2)
+    test.equal(objectives[0], 'A');
+    test.equal(objectives[1], 'B');
+    test.equal(dataToPrint['2014-07-07 22#A'].amount, 13);
+    test.equal(dataToPrint['2014-07-07 22#A'].responseTime, 20);
+    test.equal(dataToPrint['2014-07-07 00#B'].amount, 7);
+    test.equal(dataToPrint['2014-07-07 00#B'].responseTime, 15);
 
 
     test.done();
@@ -186,7 +272,7 @@ exports['testcalculateForPrintingWith2Objective'] = function (test) {
 }
 
 
-exports['testcalculateForPrintingWithTotalTime'] = function (test) {
+exports['testMinutesToHours5'] = function (test) {
 
     var stat = [
         {
@@ -212,78 +298,30 @@ exports['testcalculateForPrintingWithTotalTime'] = function (test) {
         }
     ]
 
-    var dataToPrint = logAnalyzer.convertStatToStatForPrinting(null, stat);
+    var data = logAnalyzer.convertStatMinutesToStatHours(stat);
+    var objectives = logAnalyzer.getObjectives(stat);
+    var firstDateHours = logAnalyzer.getFirstDateHours(stat);
+    var lastDateHours = logAnalyzer.getLastDateHours(stat);
 
-    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 00:00:00")
-    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 23:00:00")
-    test.equal(dataToPrint.objectives.length, 1)
-    test.equal(dataToPrint.objectives[0], 'A');
-    test.equal(dataToPrint.data['2014-07-07 00^A'].amount, 13);
-    test.equal(dataToPrint.data['2014-07-07 00^A'].responseTime, 20);
-    test.equal(dataToPrint.data['2014-07-07 23^A'].amount, 7);
-    test.equal(dataToPrint.data['2014-07-07 23^A'].responseTime, 15);
-    test.equal(dataToPrint.data['2014-07-07 00^A'].totalResponseTime, 250);
-    test.equal(dataToPrint.data['2014-07-07 00^A'].totalAmount, 20);
+    test.equal(firstDateHours.format("YYYY-MM-DD HH"), "2014-07-07 00")
+    test.equal(lastDateHours.format("YYYY-MM-DD HH"), "2014-07-07 23")
+    test.equal(objectives.length, 1)
+    test.equal(objectives[0], 'A');
+    test.equal(data['2014-07-07 00#A'].amount, 13);
+    test.equal(data['2014-07-07 00#A'].responseTime, 20);
+    test.equal(data['2014-07-07 23#A'].amount, 7);
+    test.equal(data['2014-07-07 23#A'].responseTime, 15);
+    test.equal(data['2014-07-07 00#A'].totalResponseTime, 250);
+    test.equal(data['2014-07-07 00#A'].totalAmount, 20);
 
-
-    test.done();
-
-}
-
-exports['testcalculateForPrintingWithAlreadyExistedValue'] = function (test) {
-
-    var stat = [
-        {
-            objective: 'B',
-            dateStr: '2014-07-07 00:13',
-            amount: 7,
-            responseTime: 15
-        },
-        {
-            objective: 'A',
-            dateStr: '2014-07-07 22:14',
-            amount: 13,
-            responseTime: 20
-        }
-    ]
-
-    var dataToPrint = logAnalyzer.convertStatToStatForPrinting({
-        firstDate: moment("2014-07-06 23", "YYYY-MM-DD HH"),
-        lastDate: moment("2014-07-07 15", "YYYY-MM-DD HH"),
-        objectives: ['C', 'A'],
-        data: {
-            "2014-07-07 22^A": {
-                amount: 15,
-                responseTime: 10
-            },
-            "2014-07-06 23^C": {
-                amount: 5,
-                responseTime: 1
-            }
-        }
-
-    }, stat);
-
-    test.equal(dataToPrint.firstDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-06 23:00:00")
-    test.equal(dataToPrint.lastDate.format("YYYY-MM-DD HH:mm:ss"), "2014-07-07 22:00:00")
-    test.equal(dataToPrint.objectives.length, 3)
-    test.equal(dataToPrint.objectives[0], 'A');
-    test.equal(dataToPrint.objectives[1], 'B');
-    test.equal(dataToPrint.objectives[2], 'C');
-    test.equal(dataToPrint.data['2014-07-07 22^A'].amount, 15);
-    test.equal(dataToPrint.data['2014-07-07 22^A'].responseTime, 20);
-    test.equal(dataToPrint.data['2014-07-07 00^B'].amount, 7);
-    test.equal(dataToPrint.data['2014-07-07 00^B'].responseTime, 15);
-    test.equal(dataToPrint.data['2014-07-06 23^C'].amount, 5);
-    test.equal(dataToPrint.data['2014-07-06 23^C'].responseTime, 1);
 
     test.done();
 
 }
 
-exports['testMergeStatOfFiles'] = function (test) {
+exports['testStatFilesToMinutes'] = function (test) {
 
-    var statOfFiles = [
+    var statOfFiles =
         [
             {
                 objective: 'B',
@@ -298,9 +336,7 @@ exports['testMergeStatOfFiles'] = function (test) {
                 amount: 13,
                 responseTime: 20,
                 totalResponseTime: 20
-            }
-        ],
-        [
+            },
             {
                 objective: 'B',
                 dateStr: '2014-07-07 00:13',
@@ -322,33 +358,33 @@ exports['testMergeStatOfFiles'] = function (test) {
                 responseTime: 21,
                 totalResponseTime: 10
             }
+
         ]
-    ]
 
-    var result = logAnalyzer.mergeStatOfFiles(statOfFiles)
-    test.equal(result.length,3);
-    test.equal(_.find(result, function (elem) {
-        return (elem.objective === 'B' && elem.dateStr === '2014-07-07 00:13' && elem.amount === 14 && elem.responseTime === 15 && elem.totalResponseTime === 21)
-    }) != undefined, true)
-    test.equal(_.find(result, function (elem) {
-        return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:14' && elem.amount === 14 && elem.responseTime === 21)
-    }) != undefined, true)
+    var result = logAnalyzer.convertStatFilesToStatMinutes(statOfFiles)
 
-    test.equal(_.find(result, function (elem) {
-        return (elem.objective === 'A' && elem.dateStr === '2014-07-07 22:15' && elem.amount === 1 && elem.responseTime === 21)
-    }) != undefined, true)
+    test.equal(result['2014-07-07 00:13#B'].amount, 14);
+    test.equal(result['2014-07-07 00:13#B'].responseTime, 15);
+    test.equal(result['2014-07-07 00:13#B'].totalResponseTime, 21);
+
+    test.equal(result['2014-07-07 22:14#A'].amount, 14);
+    test.equal(result['2014-07-07 22:14#A'].responseTime, 21);
+
+    test.equal(result['2014-07-07 22:15#A'].amount, 1);
+    test.equal(result['2014-07-07 22:15#A'].responseTime, 21);
+
+
+    test.equal(_.keys(result).length, 3);
 
     test.done();
 }
 
 exports['testcalculateStatForPrintingFromDir'] = function (test) {
-    logAnalyzer.calculateStatForPrinting('test/resources/testDirectory', function (statForPrinting) {
-        test.equal(statForPrinting.data['2014-07-07 00^com.abb.nps.server.HTMLServingServlet#doGet'].amount,2);
-        test.equal(statForPrinting.data['2014-07-07 00^com.abb.nps.server.HTMLServingServlet#doGet'].responseTime,1);
-        test.equal(statForPrinting.data['2014-07-07 01^com.abb.nps.server.HTMLServingServlet#doGet'].amount,1);
-        test.equal(statForPrinting.data['2014-07-07 01^com.abb.nps.server.HTMLServingServlet#doGet'].responseTime,2);
-        test.equal(statForPrinting.firstDate.format("YYYY-MM-DD HH"), "2014-07-07 00");
-        test.equal(statForPrinting.lastDate.format("YYYY-MM-DD HH"), "2014-07-07 01");
+    logAnalyzer.parseFiles('test/resources/testDirectory', function (statMinutes, statHours) {
+        test.equal(statHours['2014-07-07 00#com.abb.nps.server.HTMLServingServlet#doGet'].amount, 2);
+        test.equal(statHours['2014-07-07 00#com.abb.nps.server.HTMLServingServlet#doGet'].responseTime, 1);
+        test.equal(statHours['2014-07-07 01#com.abb.nps.server.HTMLServingServlet#doGet'].amount, 1);
+        test.equal(statHours['2014-07-07 01#com.abb.nps.server.HTMLServingServlet#doGet'].responseTime, 2);
         test.done();
     })
 }

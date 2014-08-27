@@ -5,27 +5,29 @@
         lineReader = require('line-reader'),
         Client = require('node-rest-client').Client;
 
-        var client = new Client({
-            proxy: {
-                host: "proxycrc.pl.abb.com",
-                port: 8080
-            }
-        });
-
+    var client = new Client({
+        proxy: {
+            host: "proxycrc.pl.abb.com",
+            port: 8080,
+            tunnel: false
+        }
+    });
+    client.registerMethod("uasToBrowser", "http://www.useragentstring.com/", "GET");
+    client.calls = 0;
 
 
     var logAnalyzer = {
 
-        fillInBrowser: function (userAgent, onEnd){
-            userAgent.browser = userAgent.orginalString;
-            var args = {
-                data: { test: "hello" },
-                headers:{"Content-Type": "application/json"}
-            };
-            client.post("http://remote.site/rest/xml/method", args, function(data,response) {
-                onEnd(null,data.coś)
+        fillInBrowser: function (userAgent, onEnd) {
 
-            });
+            client.methods.uasToBrowser({parameters: {uas: userAgent.userAgentString, getJSON: 'all'}},
+                function (data, response) {
+                    console.log(++client.calls)
+                    userAgent.browser = data.agent_type + '\t' + data.agent_name + '\t' +data.agent_version + '\t' +data.os_type + '\t' +data.os_name + '\t' +data.os_versionName + '\t' +data.os_versionNumber + '\t' +data.linux_distibution;
+                    onEnd(null, userAgent);
+                }).on('error',function(err){
+                    console.log('ERROR: ', err);
+                });
 
         },
 
@@ -39,12 +41,15 @@
                 var splited = line.split('\t');
 
                 if (splited.length == 2) {
-                    userAgentStrings.push({amount: splited[0].trim(), orginalString: splited[1].trim(), browser: undefined});
+                    userAgentStrings.push({amount: parseInt(splited[0].trim()), userAgentString: splited[1].trim(), browser: undefined});
                 }
 
                 if (last) {
-                    async.mapLimit(userAgentStrings, 10, self.fillInBrowser, function(err,stat){
+                    async.mapLimit(userAgentStrings, 1, self.fillInBrowser, function (err, stat) {
                         var merged = self.mergeUserAgentString(stat);
+                        merged = _.sortBy(merged, function (a) {
+                            return -a.amount;
+                        });
                         var stream = fs.createWriteStream(fileTo);
                         stream.once('open', function (fd) {
                             for (var i = 0; i < merged.length; i++) {
@@ -59,19 +64,18 @@
 
         },
 
-        mergeUserAgentString: function (userAgentStrings) {
+        mergeUserAgentString: function (elems) {
 
             var stat = {}
 
-            for (var i = 0; i < userAgentStrings.length; i++) {
+            for (var i = 0; i < elems.length; i++) {
 
-                var key = userAgentStrings[i].browser;
+                var key = elems[i].browser;
                 var current = stat[key];
                 if (_.isUndefined(current)) {
-                    current = stat[key] = userAgentStrings[i];
+                    current = stat[key] = elems[i];
                 } else {
-                    current.amount = current.amount + userAgentStrings[i].amount;
-                    current.orginalString = current.orginalString + userAgentStrings[i].orginalString;
+                    current.amount = current.amount + elems[i].amount;
                 }
 
             }
