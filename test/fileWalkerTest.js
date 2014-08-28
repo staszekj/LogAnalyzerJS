@@ -1,4 +1,4 @@
-var logAnalyzer = require('../bin/FileWalker'),
+var logAnalyzer = require('../bin/fileWalker'),
     _ = require('../node_modules/underscore'),
     fs = require('fs'),
     moment = require('../node_modules/moment')

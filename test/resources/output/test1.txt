@@ -1,4 +1,0 @@
-2014-07-07 00:00:00	com.abb.nps.client.AnalysisReportService	getManagersData	1	1	3002	3002
-2014-07-07 00:00:00	com.abb.nps.client.DashboardService	getDashboardOverviewPageInternalSurvey	2	2	62516	32516
-2014-07-07 00:00:00	com.abb.nps.client.DashboardService	getSurveyForDashboard	1	1	47	47
-2014-07-07 00:00:00	com.abb.nps.server.HTMLServingServlet	doGet	3	2	3	1
